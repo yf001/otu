@@ -136,9 +136,9 @@ class otu extends PluginBase implements Listener {
 
 	//ブロック設置制限
     public function onBlockPlace(BlockPlaceEvent $event){
-	$player = $event->getPlayer();
-	if($this->otu->exists($player->getName())){
-		$event->setCancelled();
-	}
+		$player = $event->getPlayer();
+		if($this->otu->exists($player->getName())){
+			$event->setCancelled();
+		}
     }
 }
