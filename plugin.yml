@@ -1,0 +1,33 @@
+name: otu
+version: 1.1.1
+api: [1.6.0]
+author: yf001
+authors: ["akaituki8126"]
+description: 荒らしを牢獄へtpしたりすることができるようになります。
+main: otu\otu
+
+commands:
+  otu:
+    description: "荒らしを牢獄へ"
+    usage: "/otu <プレーヤー名>"
+    permission: "otu.command.otu"
+  otup:
+    description: "牢屋の場所を指定"
+    usage: "/otup"
+    permission: "otu.command.pos"
+  runa:
+    description: "乙された人を動けなくする"
+    usage: "/runa <プレーヤー名>"
+    permission: "otu.command.run"
+
+permissions:
+  otu.command:
+    default: op
+    description: "otupos"
+    children:
+     otu.command.otu:
+       default: op
+       description: "otu"
+     otu.command.pos:
+       default: op
+       description: "otu"
