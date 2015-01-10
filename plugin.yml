@@ -1,5 +1,5 @@
 name: otu
-version: 1.1.1
+version: 1.2.0
 api: [1.6.0]
 author: yf001
 authors: ["akaituki8126"]
@@ -18,16 +18,47 @@ commands:
   runa:
     description: "乙された人を動けなくする"
     usage: "/runa <プレーヤー名>"
-    permission: "otu.command.run"
+    permission: "otu.command.runa"
+  otulist:
+    description: "乙やルナされて人の一覧を見れます"
+    usage: "/otulist"
+    permission: "otu.command.otulist"
+  jail:
+    description: "プレーヤーをその場で牢屋に入れます"
+    usage: "/jail <プレーヤー名>"
+    permission: "otu.command.jail"
+  unjail:
+    description: "牢屋を撤去します"
+    usage: "/unjail"
+    permission: "otu.command.unjail"
+#  jailcraft:
+#    description: "牢屋を作ります"
+#    usage: "/jailcraft help"
+#    permission: "otu.command.jailcraft"
 
 permissions:
   otu.command:
     default: op
-    description: "otupos"
+    description: "otuのすべてのコマンドを使用できます"
     children:
      otu.command.otu:
        default: op
-       description: "otu"
+       description: "/otuを使えるようになります"
      otu.command.pos:
        default: op
-       description: "otu"
+       description: "/otupを使えるようになります"
+     otu.command.runa:
+       default: op
+       description: "/runaを使えるようになります"
+     otu.command.otulist:
+       default: op
+       description: "/otulistを使えるようになります"
+     otu.command.jail:
+       default: op
+       description: "/jailを使えるようになります"
+     otu.command.unjail:
+       default: op
+       description: "/unjailを使えるようになります"
+     otu.command.jailcraft:
+       default: op
+       description: "/jailcraftを使えるようになります"
