@@ -13,12 +13,12 @@ otu
     <td>補足</td>
   </tr>
   <tr>
-    <td>/otu　<プレーヤー名></td>
+    <td>/otu &lt;プレーヤー名&gt;</td>
     <td>指定したプレーヤーを牢屋に入れて<br/>コマンド、ブロック破壊、設置をできなくなります</td>
     <td>解除はもう一度やれば解除できます</td>
   </tr>
   <tr>
-    <td>/runa　<プレーヤー名></td>
+    <td>/runa &lt;プレーヤー名&gt;</td>
     <td>指定したプレーヤーを動けなくします(要otu)</td>
     <td>解除はもう一度やれば解除できます</td>
   </tr>
@@ -41,7 +41,7 @@ otu
     <td>補足</td>
   </tr>
  <tr>
-    <td>/jail <プレーヤー名> [牢屋のタイプ]</td>
+    <td>/jail &lt;プレーヤー名&gt; [牢屋のタイプ]</td>
     <td>プレーヤーをその場で牢屋に入れます</td>
     <td>牢屋のタイプの変更は未実装</td>
   </tr>
@@ -64,7 +64,7 @@ otu
     <td>補足</td>
   </tr>
   <tr>
-    <td>/jailcraft craft <牢屋の名前></td>
+    <td>/jailcraft craft &lt;牢屋の名前&gt;</td>
     <td>牢屋を作成できます。</td>
     <td></td>
   </tr>
