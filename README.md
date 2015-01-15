@@ -31,6 +31,9 @@ otu
     <td>乙、ルナをされた人の一覧を見れます</td>
     <td></td>
   </tr>
+</table>
+####牢屋
+<table>
  <tr>
     <td>/jail <プレーヤー名> [牢屋のタイプ]</td>
     <td>プレーヤーをその場で牢屋に入れます</td>
@@ -39,6 +42,19 @@ otu
   <tr>
     <td>/unjail</td>
     <td>設置された牢屋を撤去し、元通りの状態に戻します</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>/unjailall</td>
+    <td>設置されたすべての牢屋を撤去します</td>
+    <td></td>
+  </tr>
+</table>
+####牢屋の作成
+<table>
+  <tr>
+    <td>/jailcraft craft <牢屋の名前></td>
+    <td>牢屋を作成できます。</td>
     <td></td>
   </tr>
    <tr>
@@ -55,10 +71,5 @@ otu
     <td>/jailcraft pos3</td>
     <td>プレーヤーの位置を指定します。</td>
     <td>プレーヤーの位置で指定されます</td>
-  </tr>
-  <tr>
-    <td>/jailcraft craft <牢屋の名前></td>
-    <td>牢屋を作成できます。</td>
-    <td></td>
   </tr>
 </table>
