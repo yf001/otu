@@ -12,6 +12,8 @@ use pocketmine\permission\ServerOperator;
 use pocketmine\utils\Config;
 use pocketmine\utils\TextFormat;
 use pocketmine\math\Vector3;
+use pocketmine\level\Position;
+use pocketmine\level\Level;
 
 use pocketmine\event\player\PlayerMoveEvent;
 use pocketmine\event\player\PlayerInteractEvent;
@@ -30,6 +32,13 @@ class otu extends PluginBase implements Listener {
 		$this->otu = new Config($this->getDataFolder() . "otu.yml", Config::YAML);
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);//イベント登録
 		jail::init();
+		$xyz = explode(',', $this->config->get("xyz"));//x,y,z,worldを配列に変換
+        $this->level = Server::getInstance()->getLevelByName($xyz[3]);
+		if(!($this->level instanceof Level)){
+			$this->getLogger()->warning("ワールド{$xyz[3]}が読み込まれていません!");
+			$this->getLogger()->warning("デフォルトで使用されるワールドを使用します");
+			$this->level = Server::getInstance()->getDefaultLevel();
+		}
 	}
 	//サーバー停止時の処理//プラグインが無効になると実行されるメソッド
 	public function onDisable() {
@@ -45,8 +54,8 @@ class otu extends PluginBase implements Listener {
 					if(!$this->otu->exists($player->getName())){//otuされてるかを確認!
 						$this->otu->set($player->getName(),"true");//otuリストに追加!
 						$this->otu->save();//セーブ
-						$xyz = explode(',', $this->config->get("xyz"));//x,x,xを配列に変換
-						$v = new Vector3($xyz[0], $xyz[1], $xyz[2]);//座標指定
+						$xyz = explode(',', $this->config->get("xyz"));//x,y,zを配列に変換
+						$v = new Position($xyz[0], $xyz[1], $xyz[2], $this->level);//座標指定
 						$player->teleport($v);//ターゲットを指定した座標へtp!
 						$sender->sendMessage("[乙] ( ﾟω^ )ゝ " . $player->getName() . "さんを牢屋へTP!しました");//コマンド実行者にメッセージ
 						$player->sendMessage("( ﾟω^ )ゝ 荒らし乙であります！");//ターゲットへのめっせーじ
@@ -60,9 +69,7 @@ class otu extends PluginBase implements Listener {
 					if(!$this->otu->exists($args[0])){//otuされてるかを確認!
 						$this->otu->set($args[0],"true");//otuリストに追加!
 						$this->otu->save();//セーブ
-						$xyz = explode(',', $this->config->get("xyz"));//x,x,xを配列に変換
-						$v = new Vector3($xyz[0], $xyz[1], $xyz[2]);//座標指定
-						$sender->sendMessage("[乙] ( ﾟω^ )ゝ " . $player->getName() . "さんを牢屋へTP!しました");//コマンド実行者にメッセージ
+						$sender->sendMessage("[乙] ( ﾟω^ )ゝ " . $player->getName() . "さんをotuにリストに追加しました!");//コマンド実行者にメッセージ
 					}else{//セットされていれば以下の処理
 						$this->otu->remove($args[0]);//otuリストから削除
 						$this->otu->save();//セーブ
@@ -77,7 +84,7 @@ class otu extends PluginBase implements Listener {
 					$x = round($sender->getX(), 1);//コマンド実行者のX座標取得&四捨五入
 					$y = round($sender->getY(), 1);//コマンド実行者のY座標取得&四捨五入
 					$z = round($sender->getZ(), 1);//コマンド実行者のZ座標取得&四捨五入
-					$this->config->set("xyz",$x . "," . $y ."," . $z);//設定ファイルに座標を設定
+					$this->config->set("xyz",$x . "," . $y ."," . $z . "," . $sender->getLevel()->getName());//設定ファイルに座標を設定
 					$this->config->save();//セーブ
 					//コマンド実行者へ設定完了メッセージを送信
 					$sender->sendMessage("[乙] 牢屋の座標を x:" . $x . " y:" . $y . " z:" . $z . "に設定しました");
@@ -96,7 +103,7 @@ class otu extends PluginBase implements Listener {
 							$sender->sendMessage("[乙] ( ﾟω^ )ゝ {$player->getName()}さんをrunaリストから削除しました!");//コマンド実行者にメッセージ送信
                             $player->sendMessage("[乙] runaを解除しました");//ターゲットへのめっせーじ
 						}else{//なっていなければ以下の処理
-							$this->otu->set($player->getName(),"blocked");//runa化
+							$this->otu->set($player->getName(),"blocked");//ルナ判定になるように値を変更
 							$this->otu->save();//セーブ
 							$sender->sendMessage("[乙] ( ﾟω^ )ゝ " . $player->getName() . "さんを動けなくしました");//コマンド実行者にメッセージ
 							$player->sendMessage("[乙] 動くと罪が重くなりますよ!");//ターゲットへのめっせーじ
@@ -125,7 +132,7 @@ class otu extends PluginBase implements Listener {
 					}else{
 						//取得した値からルナか乙かを判定しわかりやすく表示&リストに追加(値がblockedの場合はルナ、それ以外の場合は乙と表示されます)
 						$list .= $key . "(" . $oturuna . "),";
-						++$count;//リストを見やすくするための変数に追加
+						++$count;//リストを見やすくするための変数に1を足す
 					}
 				}
 				$list = trim($list, ',');//前後の,を削除
@@ -134,9 +141,11 @@ class otu extends PluginBase implements Listener {
 			break;
 			case "jail"://jailコマンド実行時の処理
 				if(!isset($args[0])){return false;}//例外回避
+				if(!isset($args[1])){$args[1] = null;}//例外回避
 				$player = $this->getServer()->getPlayer($args[0]);//プレーヤー名取得
 				if($player instanceof Player){//プレーヤーが存在するかをチェック
 					jail::getInstance()->playerJail($player,$sender,$args[1]);//jail.phpで処理!
+                    //コマンド送信者がプレーヤーかを判定し顔文字を見やすく//どうでもいいこだわりw
 					if($sender instanceof Player){
 						$sender->sendMessage("[乙] ( ｀･ω ･´)ゞ " . $player->getName() . "さんを牢屋に入れました!");//コマンド実行者にメッセージ
 					}else{
@@ -149,7 +158,8 @@ class otu extends PluginBase implements Listener {
 				return true;
 			break;
 			case "unjail"://jailコマンド実行時の処理
-				if(jail::getInstance()->unJail($sender)){//jail.phpで処理
+				if(jail::getInstance()->unJail($sender->getName())){//jail.phpで処理
+                	//コマンド送信者がプレーヤーかを判定し顔文字を見やすく//どうでもいいこだわりw
 					if($sender instanceof Player){
 						$sender->sendMessage("[乙] ( ｀･ω ･´)ゞ 牢屋を撤去しました");//コマンド実行者にメッセージ
 					}else{
@@ -164,31 +174,54 @@ class otu extends PluginBase implements Listener {
 				if(!isset($args[0])){return false;}//例外回避
 				switch ($args[0]) {
 				case "pos1":
+				case "p1":
 					jail::getInstance()->pos[$sender->getName()][1] = array("x" => $sender->getX(), "y" => $sender->getY(), "z" => $sender->getZ());
 					$sender->sendMessage("[乙] 始点を設定しました");//コマンド実行者にメッセージ送信
 					break;
 				case "pos2":
+				case "p2":
 					Jail::getInstance()->pos[$sender->getName()][2] = array("x" => $sender->getX(), "y" => $sender->getY(), "z" => $sender->getZ());
 					$sender->sendMessage("[乙] 終点を設定しました");//コマンド実行者にメッセージ送信
 					break;
 				case "pos3":
+				case "p3":
 					Jail::getInstance()->pos[$sender->getName()][3] = array("x" => $sender->getX(), "y" => $sender->getY(), "z" => $sender->getZ());
 					$sender->sendMessage("[乙] プレーヤーの場所を設定しました");//コマンド実行者にメッセージ送信
 					break;
 				case "craft":
+				case "c":
 					if(!isset($args[1])){return false;}//例外回避
-					if(isset(Jail::getInstance()->pos[$sender->getName()][1]) and isset(Jail::getInstance()->pos[$sender->getName()][2]) and isset(Jail::getInstance()->pos[$sender->getName()][3])){
+					if(isset(Jail::getInstance()->pos[$sender->getName()][1]) and //pos1が指定されてるか
+                    	isset(Jail::getInstance()->pos[$sender->getName()][2]) and //pos2が指定されてるか
+                        	isset(Jail::getInstance()->pos[$sender->getName()][3]) and
+                            	isset($args[1])){//pos3が指定されてるか
 						if(Jail::getInstance()->craftJail($sender,$args[1])){
 							$sender->sendMessage("[乙] 作成完了!");//コマンド実行者にメッセージ送信
 						}else{
-							$sender->sendMessage("[乙] エラーだよん");//コマンド実行者にメッセージ送信
+							$sender->sendMessage("[乙] 同じ名前の牢屋が既にあります");//コマンド実行者にメッセージ送信
 						}
 					}else{
-						$sender->sendMessage("[乙] 始点と終点とプレーヤの場所を指定してください");//コマンド実行者にメッセージ送信
+						$sender->sendMessage("[乙] 始点と終点とプレーヤの場所と牢屋の名前を指定してください");//コマンド実行者にメッセージ送信
 					}
 					break;
 				default:
-					echo "変数sampleは1～3以外です。";
+					$sender->sendMessage("[乙] /jailcraft pos1:始点の指定");//コマンド実行者にメッセージ送信
+                    $sender->sendMessage("[乙] /jailcraft pos2:終点の指定");//コマンド実行者にメッセージ送信
+                    $sender->sendMessage("[乙] /jailcraft pos3:プレーヤーの位置を指定");//コマンド実行者にメッセージ送信
+                    $sender->sendMessage("[乙] /jailcraft craft <牢屋の名前>");//コマンド実行者にメッセージ送信
+				}
+				return true;
+			break;
+			case "unjailall"://unjailallコマンド実行時の処理
+				if(jail::getInstance()->unJailAll()){//jail.phpで処理
+                	//コマンド送信者がプレーヤーかを判定し顔文字を見やすく//どうでもいいこだわりw
+					if($sender instanceof Player){
+						$sender->sendMessage("[乙] ( ｀･ω ･´)ゞ すべての牢屋を撤去しました");//コマンド実行者にメッセージ
+					}else{
+						$sender->sendMessage("[乙] (｀･ω･´)ゞ すべての牢屋を撤去しました");//コマンド実行者にメッセージ
+					}
+				}else{
+					$sender->sendMessage("[乙] 戻すためのデータがありませんでした");//コマンド実行者にメッセージ送信
 				}
 				return true;
 			break;
@@ -200,9 +233,14 @@ class otu extends PluginBase implements Listener {
 	public function onPlayerCommand(PlayerCommandPreprocessEvent $event){
 		$player = $event->getPlayer();
 		if($this->otu->exists($player->getName())){
-			$s = strpos($event->getMessage(), '/');
+			$m = $event->getMessage();
+			$s = strpos($m, '/');
 			if($s == 0 and $s !== false){
-				$event->setCancelled(true);
+				$s2 = strpos($m, '/register');
+				$s3 = strpos($m, '/login');
+				if($s2 !== false and $s3 !== false){
+					$event->setCancelled(true);
+				}
 			}
 		}
 	}

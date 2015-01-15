@@ -1,5 +1,5 @@
 name: otu
-version: 1.2.0
+version: 1.2.2
 api: [1.6.0]
 author: yf001
 authors: ["akaituki8126"]
@@ -31,10 +31,14 @@ commands:
     description: "牢屋を撤去します"
     usage: "/unjail"
     permission: "otu.command.unjail"
-#  jailcraft:
-#    description: "牢屋を作ります"
-#    usage: "/jailcraft help"
-#    permission: "otu.command.jailcraft"
+  jailcraft:
+    description: "牢屋自体をを作れます"
+    usage: "/jailcraft help"
+    permission: "otu.command.jailcraft"
+  unjailall:
+    description: "設置された牢屋をすべて撤去します"
+    usage: "/unjailall"
+    permission: "otu.command.unjailall"
 
 permissions:
   otu.command:
@@ -62,3 +66,6 @@ permissions:
      otu.command.jailcraft:
        default: op
        description: "/jailcraftを使えるようになります"
+     otu.command.unjailall:
+       default: op
+       description: "/unjailallを使えるようになります"

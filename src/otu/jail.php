@@ -10,23 +10,35 @@ use pocketmine\level\Position;
 use pocketmine\math\Vector3;
 use pocketmine\utils\Config;
 use pocketmine\utils\TextFormat;
+use pocketmine\tile\Sign;
+use pocketmine\tile\Tile;
 
 class jail{
 
 	private static $obj = null;
 	
+	//コンストラクタ//このクラスが呼び出されると実行されるメソッド
 	public function __construct(){
 		if(!self::$obj instanceof Jail){
 			self::$obj = $this;
 		}
-		$this->old = array();
-		$this->pos = array();
+		$this->old = array();//変数を初期化
+		$this->pos = array();//変数を初期化
+		//メインクラスのオブジェクトをプラグインマネージャーから名前で取得
 		$this->plugin = Server::getInstance()->getPluginManager()->getPlugin("otu");
+		//牢屋のコンフィグファイルの生成
 		$this->jail = new Config($this->plugin->getDataFolder() . "jail.yml", Config::YAML);
-		$datas = $this->jail->getAll();
-		if(count($datas) > 0){
-			foreach($datas as $name => $blocks){
-				$this->jailtype[$name] = $blocks;
+		$data = $this->jail->getAll();//牢屋のコンフィグファイルからすべてのデータを配列で取得
+		$blocksc = array();//変数を初期化
+		if(count($data) > 0){//変数に配列があるか
+			foreach($data as $name => $blocks){//取得したデータを取り出して以下の処理を行う
+				foreach($blocks as $val){
+					foreach($val as $val2){
+						$blocksc[] = explode(",",$val2);
+					}
+				}
+				//ブロックデータを , で区切って配列化
+				$this->jailtype[$name] = $blocksc;
 			}
 		}
 	}
@@ -49,53 +61,96 @@ class jail{
 		$x = round($player->getX());
 		$y = round($player->getY());
 		$z = round($player->getZ());
-		$data = array();
 		//$blocks = $this->getJailStructure();
 		$blocks = $this->getJailType($type);
 		$level = $player->getLevel();
-		foreach($blocks as $key => $val){
+		$data = array("level" => $level->getName());
+		foreach($blocks as $val){
 			//[0] X座標,[1] Y座標,[2] Z座標,[3] BlockID,[4] メタ値
 			$bx = $x + $val[0];
 			$by = $y + $val[1];
 			$bz = $z + $val[2];
 			$id = $val[3];
-			$mata = $val[4];
-			$this->plugin->getLogger()->info("key." . $key . " x." . $x . " y." . $y . " z." . $z . " id." .$id . " mata." . $mata);
-			$data[] = array($bx, $by, $bz, $level->getBlockIdAt($bx, $by ,$bz),
-			$level->getBlockDataAt($bx, $by ,$bz));
+			$bid = $level->getBlockIdAt($bx, $by ,$bz);
+			//$mata = $val[4];
+			$mata = (isset($val[4])) ? $val[4]:0;
+			//デバッグ用//
+			//$this->plugin->getLogger()->info("key." . $key . " x." . $x . " y." . $y . " z." . $z . " id." .$id . " mata." . $mata);
+			if($bid == Block::WALL_SIGN or $bid == Block::SIGN_POST){
+				$sign = $player->getLevel()->getTile(new Vector3($bx, $by, $bz));
+				if($sign instanceof Tile){
+					$text = $sign->getText();
+					$data[] = array($bx, $by, $bz, $level->getBlockIdAt($bx, $by ,$bz),$level->getBlockDataAt($bx, $by ,$bz),$text);
+				}
+			}else{
+				$data[] = array($bx, $by, $bz, $level->getBlockIdAt($bx, $by ,$bz),$level->getBlockDataAt($bx, $by ,$bz));
+			}
+			$block = Block::get($id,$mata);
 			$block = Block::get($id,$mata);
 			$pos = new Vector3($bx, $by, $bz);
 			$level->setBlock($pos, $block);
 		}
 		$pos = new Position($x + 0.5, $y, $z + 0.5,$level);
 		$player->teleport($pos);
-		var_dump($blocks);
-		$this->old[$sender->getName()] = $data;
+		//デバッグ用//
+		//var_dump($blocks);
+		$this->old[$sender->getName()][] = $data;
 		return true;
 	}
 	
-	//牢屋を戻す
+	//牢屋を元に戻す
     public function unJail($player){
-		if(isset($this->old[$player->getName()])){
-			$data = $this->old[$player->getName()];
-			if($player instanceof Player){
-            	$level = $player->getLevel();
-            }else{
-            	$level = $this->getServer()->getDefaultLevel();
-            }
-			foreach($data as $val){
+		if($player instanceof Player){//$playerがプレーヤーの場合は名前に変換
+			$player = $player->getName();
+		}
+		if(isset($this->old[$player])){
+			//[0] X座標,[1] Y座標,[2] Z座標,[3] BlockID,[4] メタ値,[5] 看板のテキスト
+			$c = count($this->old[$player]);
+			if($c <= 0){unset($this->old[$player]);return false;}//配列がない場合は終了
+			$data = end($this->old[$player]);//最後の方にある配列を取り出す
+			if(isset($data["level"])){
+				$level = Server::getInstance()->getLevelByName($data["level"]);
+				if(!($level instanceof Level)){
+					$level = $this->getServer()->getDefaultLevel();
+				}
+			}else{
+				$level = $this->getServer()->getDefaultLevel();
+			}
+			foreach($data as $key => $val){
+				if($key === "level"){continue;}//キーがLevelの場合はこの処理をスキップ
 				$block = Block::get($val[3], $val[4]);
 				$pos = new Vector3($val[0], $val[1], $val[2]);
 				$level->setBlock($pos, $block);
+				if(isset($val[5]) and $block->getId() == Block::SIGN_POST or $block->getId() == Block::WALL_SIGN){
+					$sign = $level->getTile(new Vector3($val[0], $val[1], $val[2]));
+					if($sign instanceof Tile){
+						$sign->setText($val[5][0], $val[5][1], $val[5][2], $val[5][3]);
+						$sign->saveNBT();
+					}
+				}
+				//デバッグ用//
+				var_dump($val);
 			}
-			unset($this->old[$player->getName()]);
+			unset($data);
 			return true;
 		}else{
 			return false;
 		}
 	}
+    
+    //すべての牢屋を元に戻す
+    public function unJailAll(){
+		$olddata = $this->old;
+		foreach($olddata as $key => $val){
+			/*$c = count($this->old[$key]);
+			if($c == 0){unset($this->old[$player->getName()]);return true;}//配列がない場合は終了
+			*/
+			$this->unjail($key);
+		}
+		return true;
+	}
 	
-	public function getJailType($type = null){//to-do 読み込まれた地形データを選べるようにする
+	public function getJailType($type = null){//読み込まれたブロックデータを選べるようにする
 		if(isset($this->jailtype[$type])){
 			return $this->jailtype[$type];
 		}else{
@@ -103,30 +158,27 @@ class jail{
 		}
 	}
 	
-	public function craftJail($player, $jailName){//to-do 牢屋自体を作成できるように
+	public function craftJail($player, $name = null){//牢屋自体を作成できるように
+    	if(!isset($name)){return false;}
 		$blocks = $this->jailBlocks($player);
-		if($blocks !== false){
-			$this->jailLoad($blocks, $jailName);
+		if(($blocks !== false) and !($this->jail->exists($name))){
+			$this->jailLoad($blocks, $name);
 			return true;
 		}else{
 			return false;
 		}
 	}
 	
-	public function jailLoad($blocks, $name){//to-do 牢屋の地形データを読み込めるように
+	public function jailLoad($blocks, $name){//牢屋のブロックsデータを読み込めるように
 		if(!$this->jail->exists($name)){
-	        $this->jailRegister($blocks, $name);
+	        $this->jail->set($name,$blocks);
+			$this->jail->save();
         }
 		$this->jailtype[$name] = $blocks;
 		return true;
 	}
 	
-	public function jailRegister($blocks, $name){//to-do 牢屋の地形データを登録
-		$this->jail->set($name,$blocks);
-		$this->jail->save();
-		return true;
-	}
-	
+	//指定された範囲のブロックをデータ化
 	public function jailBlocks($player){
 		if(isset(Jail::getInstance()->pos[$player->getName()][1]) 
 			and isset(Jail::getInstance()->pos[$player->getName()][2]) 
@@ -139,18 +191,18 @@ class jail{
 			$ex = max($pos[1]["x"], $pos[2]["x"]);
 			$ey = max($pos[1]["y"], $pos[2]["y"]);
 			$ez = max($pos[1]["z"], $pos[2]["z"]);
-			$px = round($pos[3]);
-			$py = round($pos[3]);
-			$pz = round($pos[3]);
+			$px = round($pos[3]["x"] - 0.5);
+			$py = round($pos[3]["y"] - 0.5);
+			$pz = round($pos[3]["z"] - 0.5);
 			$data = array();
 			$c = 0;
 			for($x = $sx; $x <= $ex; ++$x){
 				for($y = $sy; $y <= $ey; ++$y){
 					for($z = $sz; $z <= $ez; ++$z){
-						$cx = $x - $px;
-						$cy = $y - $py;
-						$cz = $z - $pz;
-						$data = array_merge($data, array("{$c}" => array("0" => $cx, "1" => $cy, "2" => $cz, "3" => $level->getBlockIdAt($x, $y ,$z), "4" => $level->getBlockDataAt($x, $y ,$z))));
+						$cx = $px - $x;
+						$cy = $py - $y;
+						$cz = $pz - $z;
+						$data[] = array($c => -$cx . "," . -$cy . "," . -$cz . "," . $level->getBlockIdAt($x, $y ,$z) . "," . $level->getBlockDataAt($x, $y ,$z));
 						$c++;
 					}
 				}
@@ -161,173 +213,8 @@ class jail{
 		}
 	}
 
+	//通常の牢屋
 	public function getJailStructure(){
-    	/*$blocks = array(
-			array(0, 0, 0, 0, 0),
-			
-			array(1, 0, 0, 61, 0),
-			
-			array(1, 0, 1, 58, 0),
-			
-			array(0, 0, 1, 0, 0),
-			
-			array(-1, 0, 1, 0, 0),
-			
-			array(-1, 0, 0, 0, 0),
-			
-			array(-1, 0, -1, 0, 0),
-			
-			array(0, 0, -1, 0, 0),
-			
-			array(1, 0, -1, 47, 0),
-			
-			array(0, 1, 0, 0, 0),
-			
-			array(1, 1, 0, 0, 0),
-			
-			array(1, 1, 1, 0, 0),
-			
-			array(0, 1, 1, 0, 0),
-			
-			array(-1, 1, 1, 0, 0),
-			
-			array(-1, 1, 0, 0, 0),
-			
-			array(-1, 1, -1, 0, 0),
-			
-			array(0, 1, -1, 0, 0),
-			
-			array(1, 1, -1, 47, 0),
-			
-			array(0, -1, 0, 43, 0),
-			
-			array(1, -1, 0, 43, 0),
-			
-			array(1, -1, 1, 43, 0),
-			
-			array(0, -1, 1, 43, 0),
-			
-			array(-1, -1, 1, 43, 0),
-			
-			array(-1, -1, 0, 43, 0),
-			
-			array(-1, -1, -1, 43, 0),
-			
-			array(0, -1, -1, 43, 0),
-			
-			array(1, -1, -1, 43, 0),
-			
-			array(0, 3, 0, 89, 0),
-			
-			array(1, 3, 0, 17, 0),
-			
-			array(1, 3, 1, 17, 0),
-			
-			array(0, 3, 1, 17, 0),
-			
-			array(-1, 3, 1, 17, 0),
-			
-			array(-1, 3, 0, 17, 0),
-			
-			array(-1, 3, -1, 17, 0),
-			
-			array(0, 3, -1, 17, 0),
-			
-			array(1, 3, -1, 17, 0),
-			
-			array(0, 2, 0, 0, 0),
-			
-			array(1, 2, 0, 0, 0),
-			
-			array(1, 2, 1, 0, 0),
-			
-			array(0, 2, 1, 0, 0),
-			
-			array(-1, 2, 1, 0, 0),
-			
-			array(-1, 2, 0, 0, 0),
-			
-			array(-1, 2, -1, 0, 0),
-			
-			array(0, 2, -1, 0, 0),
-			
-			array(1, 2, -1, 0, 0),
-			
-			array(2, 0, -1, 5, 0),
-			
-			array(2, 0, 0, 5, 0),
-			
-			array(2, 0, 1, 5, 0),
-			
-			array(1, 0, 2, 5, 0),
-			 array(0, 0, 2, 5, 0),
-			 array(-1, 0, 2, 5, 0),
-			 array(-2, 0, 1, 5, 0),
-			 array(-2, 0, 0, 5, 0),
-			 array(-2, 0, -1, 0, 0),
-			 array(1, 0, -2, 5, 0),
-			 array(0, 0, -2, 5, 0),
-			 array(-1, 0, -2, 5, 0),
-			array(2, 0, 2, 17, 0),
-			 array(-2, 0, 2, 17, 0),
-			 array(-2, 0, -2, 17, 0),
-			 array(2, 0, -2, 17, 0),
-			array(2, 1, -1, 5, 0),
-			 array(2, 1, 0, 102, 0),
-			 array(2, 1, 1, 5, 0),
-			 array(1, 1, 2, 5, 0),
-			 array(0, 1, 2, 102, 0),
-			 array(-1, 1, 2, 5, 0),
-			 array(-2, 1, 1, 20, 0),
-			 array(-2, 1, 0, 5, 0),
-			 array(-2, 1, -1, 0, 0),
-			 array(1, 1, -2, 5, 0),
-			 array(0, 1, -2, 102, 0),
-			 array(-1, 1, -2, 5, 0),
-			array(2, 1, 2, 17, 0),
-			 array(-2, 1, 2, 17, 0),
-			 array(-2, 1, -2, 17, 0),
-			 array(2, 1, -2, 17, 0),
-			array(2, 2, -1, 5, 0),
-			 array(2, 2, 0, 5, 0),
-			 array(2, 2, 1, 5, 0),
-			 array(1, 2, 2, 5, 0),
-			 array(0, 2, 2, 5, 0),
-			 array(-1, 2, 2, 5, 0),
-			 array(-2, 2, 1, 5, 0),
-			 array(-2, 2, 0, 5, 0),
-			 array(-2, 2, -1, 5, 0),
-			 array(1, 2, -2, 5, 0),
-			 array(0, 2, -2, 5, 0),
-			 array(-1, 2, -2, 5, 0),
-			array(2, 2, 2, 17, 0),
-			 array(-2, 2, 2, 17, 0),
-			 array(-2, 2, -2, 17, 0),
-			 array(2, 2, -2, 17, 0),
-			array(2, 3, -1, 17, 0),
-			 array(2, 3, 0, 17, 0),
-			 array(2, 3, 1, 17, 0),
-			 array(1, 3, 2, 17, 0),
-			 array(0, 3, 2, 17, 0),
-			 array(-1, 3, 2, 17, 0),
-			 array(-2, 3, 1, 17, 0),
-			 array(-2, 3, 0, 17, 0),
-			 array(-2, 3, -1, 17, 0),
-			 array(1, 3, -2, 17, 0),
-			 array(0, 3, -2, 17, 0),
-			 array(-1, 3, -2, 17, 0),
-			array(-2, -1, 1, 4, 0),
-			 array(-2, -1, 0, 4, 0),
-			 array(-2, -1, -1, 4, 0),
-			array(2, -1, 2, 17, 0),
-			 array(-2, -1, 2, 17, 0),
-			 array(-2, -1, -2, 17, 0),
-			 array(2, -1, -2, 17, 0),
-			array(2, 3, 2, 17, 0),
-			 array(-2, 3, 2, 17, 0),
-			 array(-2, 3, -2, 17, 0),
-			 array(2, 3, -2, 17, 0),
-			 );*/
 		$blocks  = array(
 			//一段目
 			array(0, -1, 0, Block::BEDROCK),
@@ -368,7 +255,7 @@ class jail{
 			array(1, 0,1, Block::BEDROCK),
 			
 			//三段目
-            array(0, -1, 0, Block::AIR),
+            array(0, 1, 0, Block::AIR),
 			
 			array(0, 1, -1, Block::IRON_BAR),
 			
