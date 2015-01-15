@@ -34,6 +34,11 @@ otu
 </table>
 ####牢屋
 <table>
+  <tr>
+    <td>コマンド</td>
+    <td>説明</td>
+    <td>補足</td>
+  </tr>
  <tr>
     <td>/jail <プレーヤー名> [牢屋のタイプ]</td>
     <td>プレーヤーをその場で牢屋に入れます</td>
@@ -52,6 +57,11 @@ otu
 </table>
 ####牢屋の作成
 <table>
+  <tr>
+    <td>コマンド</td>
+    <td>説明</td>
+    <td>補足</td>
+  </tr>
   <tr>
     <td>/jailcraft craft <牢屋の名前></td>
     <td>牢屋を作成できます。</td>
