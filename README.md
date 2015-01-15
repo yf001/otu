@@ -41,4 +41,24 @@ otu
     <td>設置された牢屋を撤去し、元通りの状態に戻します</td>
     <td></td>
   </tr>
+   <tr>
+    <td>/jailcraft pos1</td>
+    <td>始点を指定します。</td>
+    <td>プレーヤーの位置で指定されます</td>
+  </tr>
+  <tr>
+    <td>/jailcraft pos2</td>
+    <td>終点を指定します。</td>
+    <td>プレーヤーの位置で指定されます</td>
+  </tr>
+   <tr>
+    <td>/jailcraft pos3</td>
+    <td>プレーヤーの位置を指定します。</td>
+    <td>プレーヤーの位置で指定されます</td>
+  </tr>
+  <tr>
+    <td>/jailcraft craft <牢屋の名前></td>
+    <td>牢屋を作成できます。</td>
+    <td></td>
+  </tr>
 </table>
