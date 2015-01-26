@@ -47,7 +47,7 @@ JailPluginの作者様:omattyao<br/>
  <tr>
     <td>/jail &lt;プレーヤー名&gt; [牢屋のタイプ]</td>
     <td>プレーヤーをその場で牢屋に入れます</td>
-    <td>牢屋のタイプの変更は未実装</td>
+    <td>牢屋のタイプは作った牢屋を使用する際に使用します。</td>
   </tr>
   <tr>
     <td>/unjail</td>
