@@ -4,6 +4,7 @@ namespace otu;
 
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
+use pocketmine\command\ConsoleCommandSender;
 use pocketmine\Server;
 use pocketmine\Player;
 use pocketmine\event\Listener;
@@ -25,23 +26,25 @@ class otu extends PluginBase implements Listener {
 
 	//サーバー開始時の処理//プラグインが有効になると実行されるメソッド
 	public function onEnable() {
-		$this->saveDefaultConfig();
-		$this->reloadConfig();
-		@mkdir($this->getDataFolder(), 0755, true);
-		$this->config = new Config($this->getDataFolder() . "config.yml", Config::YAML);
+		$this->saveResource("setting.yml", false);
+		if(!file_exists($this->getDataFolder())){
+			mkdir($this->getDataFolder(), 0755, true);
+		}
+		$this->config = new Config($this->getDataFolder() . "config.yml", Config::YAML, array("xyz" => "0,0,0,world"));
 		$this->otu = new Config($this->getDataFolder() . "otu.yml", Config::YAML);
+		$this->setting = new Config($this->getDataFolder() . "setting.yml", Config::YAML);
+		jail::init();//Jailを呼び出しておく
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);//イベント登録
-		jail::init();
 		$xyz = explode(',', $this->config->get("xyz"));//x,y,z,worldを配列に変換
-        $this->level = Server::getInstance()->getLevelByName($xyz[3]);
-		if(!($this->level instanceof Level)){
+		$this->level = Server::getInstance()->getLevelByName($xyz[3]);
+		if(!($this->level instanceof Level)){//レベルオブジェクトかの判定//違う場合は以下の処理
 			$this->getLogger()->warning("ワールド{$xyz[3]}が読み込まれていません!");
 			$this->getLogger()->warning("デフォルトで使用されるワールドを使用します");
 			$this->level = Server::getInstance()->getDefaultLevel();
 		}
 	}
 	//サーバー停止時の処理//プラグインが無効になると実行されるメソッド
-	public function onDisable() {
+	public function onDisable() {//使用しない
 	}
 	
 	//コマンド処理
@@ -57,25 +60,32 @@ class otu extends PluginBase implements Listener {
 						$xyz = explode(',', $this->config->get("xyz"));//x,y,zを配列に変換
 						$v = new Position($xyz[0], $xyz[1], $xyz[2], $this->level);//座標指定
 						$player->teleport($v);//ターゲットを指定した座標へtp!
-						$sender->sendMessage("[乙] ( ﾟω^ )ゝ " . $player->getName() . "さんを牢屋へTP!しました");//コマンド実行者にメッセージ
-						$player->sendMessage("( ﾟω^ )ゝ 荒らし乙であります！");//ターゲットへのめっせーじ
+						$sender->sendMessage("[乙] ( ﾟω^ )ゝ " . $player->getName() . "さんを牢屋へTP !しました");//コマンド実行者にメッセージ
+						$player->sendMessage("[乙] " . $this->setting->get("otu.cmdm.otu.arasi.now"));//ターゲットへのめっせーじ
 					}else{//セットされていれば以下の処理
 						$this->otu->remove($player->getName());//otuリストから削除
 						$this->otu->save();//セーブ
+						if($this->setting->get("syakuhou") == "true"){
+							$cmd = $this->setting->get("otuoffcmd");
+							if(isset($cmd)){
+								$this->CPR($cmd, $sender, $player);//関数側で処理
+							}else{
+								$this->getLogger()->warning("[乙] setting.ymlファイルのotucmdoffを正しく設定してください");
+							}
+						}
 						$sender->sendMessage("[乙] ( ﾟω^ )ゝ {$player->getName()}さんを釈放しました!");//コマンド実行者にメッセージ送信
-						$player->sendMessage("[乙] 釈放～");//ターゲットへのめっせーじ
+						$player->sendMessage("[乙] " . $this->setting->get("otu.cmdm.otu.arasi.off"));//ターゲットへのめっせーじ
 					}
 				}else{
 					if(!$this->otu->exists($args[0])){//otuされてるかを確認!
 						$this->otu->set($args[0],"true");//otuリストに追加!
 						$this->otu->save();//セーブ
-						$sender->sendMessage("[乙] ( ﾟω^ )ゝ " . $player->getName() . "さんをotuにリストに追加しました!");//コマンド実行者にメッセージ
+						$sender->sendMessage("[乙] ( ﾟω^ )ゝ " . $args[0] . "さんをotuにリストに追加しました!");//コマンド実行者にメッセージ
 					}else{//セットされていれば以下の処理
 						$this->otu->remove($args[0]);//otuリストから削除
 						$this->otu->save();//セーブ
-						$sender->sendMessage("[乙] ( ﾟω^ )ゝ {$player->getName()}さんを釈放しました!");//コマンド実行者にメッセージ送信
+						$sender->sendMessage("[乙] ( ﾟω^ )ゝ " . $args[0] . "さんを釈放しました!");//コマンド実行者にメッセージ送信
 					}
-					$sender->sendMessage("[乙] プレーヤーが存在しません");//コマンド実行者にメッセージ送信
 				}
 				return true;
 			break;
@@ -101,12 +111,12 @@ class otu extends PluginBase implements Listener {
 							$this->otu->set($player->getName(),"true");//runaリストから削除
 							$this->otu->save();//セーブ
 							$sender->sendMessage("[乙] ( ﾟω^ )ゝ {$player->getName()}さんをrunaリストから削除しました!");//コマンド実行者にメッセージ送信
-                            $player->sendMessage("[乙] runaを解除しました");//ターゲットへのめっせーじ
+							$player->sendMessage("[乙] " . $this->setting->get("otu.cmdm.runa.arasi.off"));//ターゲットへのめっせーじ
 						}else{//なっていなければ以下の処理
 							$this->otu->set($player->getName(),"blocked");//ルナ判定になるように値を変更
 							$this->otu->save();//セーブ
 							$sender->sendMessage("[乙] ( ﾟω^ )ゝ " . $player->getName() . "さんを動けなくしました");//コマンド実行者にメッセージ
-							$player->sendMessage("[乙] 動くと罪が重くなりますよ!");//ターゲットへのめっせーじ
+							$player->sendMessage("[乙] " . $this->setting->get("otu.cmdm.runa.arasi.now"));//ターゲットへのめっせーじ
 						}
 					}
 				}else{
@@ -114,25 +124,26 @@ class otu extends PluginBase implements Listener {
 				}
 				return true;
 			break;
-            case "otulist"://otulistコマンド実行時の処理
+			case "otulist"://otulistコマンド実行時の処理
 				$otulist = $this->otu->getAll();//otuリストを配列で取得
 				if(count($otulist) == 0){//otuリストの配列の数を取得し配列があるかをチェック
 					$sender->sendMessage("[乙] 現在乙された人はいません");//コマンド実行者にメッセージ送信
 					return true;
 				}
-            	$list = "---otu&runaリスト---\n";//最初のメッセージ
+				$list = "---otu&runaリスト---\n";//最初のメッセージ
 				$count = 0;
 				foreach($otulist as $key => $value){//取得したotuリストの配列からキーと値を取得しループ
+					//取得した値からルナか乙かを判定しルナ、乙表記を付ける//(値がblockedの場合はルナ、それ以外の場合は乙と表示されます)
 					$oturuna = ($value == "blocked") ? "ルナ" : "乙";
-					if($count >= 3){//リストを見やすくするための条件分岐(少し説明しずらい...)
-						$oturuna = ($value == "blocked") ? "ルナ" : "乙";
-						//取得した値からルナか乙かを判定しわかりやすく表示&リストに追加(値がblockedの場合はルナ、それ以外の場合は乙と表示されます)
+					//count変数が3以上であれば改行して表示を見やすく
+					if($count >= 3){//$countが3より上か
+						//リストに追加
 						$list .= $key . "(" . $oturuna . "),\n";
-						$count = 0;//リストを見やすくするための変数をリセット
+						$count = 0;//count変数をリセット//0に
 					}else{
-						//取得した値からルナか乙かを判定しわかりやすく表示&リストに追加(値がblockedの場合はルナ、それ以外の場合は乙と表示されます)
+						//リストに追加
 						$list .= $key . "(" . $oturuna . "),";
-						++$count;//リストを見やすくするための変数に1を足す
+						++$count;//count変数に1を足す
 					}
 				}
 				$list = trim($list, ',');//前後の,を削除
@@ -145,13 +156,13 @@ class otu extends PluginBase implements Listener {
 				$player = $this->getServer()->getPlayer($args[0]);//プレーヤー名取得
 				if($player instanceof Player){//プレーヤーが存在するかをチェック
 					jail::getInstance()->playerJail($player,$sender,$args[1]);//jail.phpで処理!
-                    //コマンド送信者がプレーヤーかを判定し顔文字を見やすく//どうでもいいこだわりw
+					//コマンド送信者がプレーヤーかを判定し顔文字を見やすく//どうでもいいこだわりw
 					if($sender instanceof Player){
 						$sender->sendMessage("[乙] ( ｀･ω ･´)ゞ " . $player->getName() . "さんを牢屋に入れました!");//コマンド実行者にメッセージ
 					}else{
 						$sender->sendMessage("[乙] (｀･ω･´)ゞ " . $player->getName() . "さんを牢屋に入れました!");//コマンド実行者にメッセージ
 					}
-					$player->sendMessage("[乙] ( ｀･ω ･´)ゞ 荒らし乙なのであります!");//ターゲットへのめっせーじ
+					$player->sendMessage("[乙] " . $this->setting->get("otu.cmdm.jail.arasi.now"));//ターゲットへのめっせーじ
 				}else{
 					$sender->sendMessage("[乙] プレーヤーが存在しません");//コマンド実行者にメッセージ送信
 				}
@@ -159,11 +170,15 @@ class otu extends PluginBase implements Listener {
 			break;
 			case "unjail"://jailコマンド実行時の処理
 				if(jail::getInstance()->unJail($sender->getName())){//jail.phpで処理
-                	//コマンド送信者がプレーヤーかを判定し顔文字を見やすく//どうでもいいこだわりw
+					//コマンド送信者がプレーヤーかを判定し顔文字を見やすく//どうでもいいこだわりw
 					if($sender instanceof Player){
 						$sender->sendMessage("[乙] ( ｀･ω ･´)ゞ 牢屋を撤去しました");//コマンド実行者にメッセージ
 					}else{
 						$sender->sendMessage("[乙] (｀･ω･´)ゞ 牢屋を撤去しました");//コマンド実行者にメッセージ
+					}
+					$player = $this->getServer()->getPlayer($args[0]);//プレーヤー名取得
+					if($player instanceof Player){
+						$player->sendMessage("[乙] " . $this->setting->get("otu.cmdm.jail.arasi.off"));//ターゲットへのめっせーじ
 					}
 				}else{
 					$sender->sendMessage("[乙] 戻すためのデータがありません");//コマンド実行者にメッセージ送信
@@ -192,9 +207,9 @@ class otu extends PluginBase implements Listener {
 				case "c":
 					if(!isset($args[1])){return false;}//例外回避
 					if(isset(Jail::getInstance()->pos[$sender->getName()][1]) and //pos1が指定されてるか
-                    	isset(Jail::getInstance()->pos[$sender->getName()][2]) and //pos2が指定されてるか
-                        	isset(Jail::getInstance()->pos[$sender->getName()][3]) and
-                            	isset($args[1])){//pos3が指定されてるか
+						isset(Jail::getInstance()->pos[$sender->getName()][2]) and //pos2が指定されてるか
+							isset(Jail::getInstance()->pos[$sender->getName()][3]) and
+								isset($args[1])){//pos3が指定されてるか
 						if(Jail::getInstance()->craftJail($sender,$args[1])){
 							$sender->sendMessage("[乙] 作成完了!");//コマンド実行者にメッセージ送信
 						}else{
@@ -206,15 +221,15 @@ class otu extends PluginBase implements Listener {
 					break;
 				default:
 					$sender->sendMessage("[乙] /jailcraft pos1:始点の指定");//コマンド実行者にメッセージ送信
-                    $sender->sendMessage("[乙] /jailcraft pos2:終点の指定");//コマンド実行者にメッセージ送信
-                    $sender->sendMessage("[乙] /jailcraft pos3:プレーヤーの位置を指定");//コマンド実行者にメッセージ送信
-                    $sender->sendMessage("[乙] /jailcraft craft <牢屋の名前>");//コマンド実行者にメッセージ送信
+					$sender->sendMessage("[乙] /jailcraft pos2:終点の指定");//コマンド実行者にメッセージ送信
+					$sender->sendMessage("[乙] /jailcraft pos3:プレーヤーの位置を指定");//コマンド実行者にメッセージ送信
+					$sender->sendMessage("[乙] /jailcraft craft <牢屋の名前>");//コマンド実行者にメッセージ送信
 				}
 				return true;
 			break;
 			case "unjailall"://unjailallコマンド実行時の処理
 				if(jail::getInstance()->unJailAll()){//jail.phpで処理
-                	//コマンド送信者がプレーヤーかを判定し顔文字を見やすく//どうでもいいこだわりw
+					//コマンド送信者がプレーヤーかを判定し顔文字を見やすく//どうでもいいこだわりw
 					if($sender instanceof Player){
 						$sender->sendMessage("[乙] ( ｀･ω ･´)ゞ すべての牢屋を撤去しました");//コマンド実行者にメッセージ
 					}else{
@@ -236,7 +251,7 @@ class otu extends PluginBase implements Listener {
 			$m = $event->getMessage();
 			$s = strpos($m, '/');
 			if($s == 0 and $s !== false){
-				$s2 = strpos($m, '/register');
+				$s2 = strpos($m, '/register');//ログインコマンドの場合はコマンドの使用を許可する
 				$s3 = strpos($m, '/login');
 				if($s2 !== false and $s3 !== false){
 					$event->setCancelled(true);
@@ -252,10 +267,10 @@ class otu extends PluginBase implements Listener {
 				$event->setCancelled();
 			}
 		}
-    }
+	}
 	
 	//ブロックタッチ制限
-    public function onPlayerInteract(PlayerInteractEvent $event){
+	public function onPlayerInteract(PlayerInteractEvent $event){
 		$player = $event->getPlayer();
 		if($this->otu->exists($player->getName())){
 			$event->setCancelled();
@@ -271,10 +286,32 @@ class otu extends PluginBase implements Listener {
 	}
 
 	//ブロック設置制限
-    public function onBlockPlace(BlockPlaceEvent $event){
+	public function onBlockPlace(BlockPlaceEvent $event){
 		$player = $event->getPlayer();
 		if($this->otu->exists($player->getName())){
 			$event->setCancelled();
+		}
+	}
+	
+	//コマンドのパラメーターを値に変換し実行する
+	public function CPR($cmd, $p, $o){
+		//player
+		$cmd = str_replace("%p", $p->getName(), $cmd);
+		$cmd = str_replace("%x", $p->getX(), $cmd);
+		$cmd = str_replace("%y", $p->getY(), $cmd);
+		$cmd = str_replace("%z", $p->getZ(), $cmd);
+		//otu
+		$cmd = str_replace("%cp", $o->getName(), $cmd);
+		$cmd = str_replace("%cx", $o->getX(), $cmd);
+		$cmd = str_replace("%cy", $o->getY(), $cmd);
+		$cmd = str_replace("%cz", $o->getZ(), $cmd);
+		if($s = strpos($cmd, '/') !== false){
+			$cmde = explode("/", $cmd);
+			foreach($cmde as $k => $v){
+				$this->getServer()->dispatchCommand(new ConsoleCommandSender(), $v);
+			}
+		}else{
+			$this->getServer()->dispatchCommand(new ConsoleCommandSender(), $cmd);
 		}
 	}
 }

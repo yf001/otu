@@ -34,7 +34,7 @@ class jail{
 			foreach($data as $name => $blocks){//取得したデータを取り出して以下の処理を行う
 				foreach($blocks as $val){
 					foreach($val as $val2){
-						$blocksc[] = explode(",",$val2);
+						$blocksc[] = explode(",",$val2);// , で区切って配列にする
 					}
 				}
 				//ブロックデータを , で区切って配列化
@@ -57,7 +57,7 @@ class jail{
 	}
 	
 	//プレーヤーを牢屋に入れる//$player プレーヤーのオブジェクト
-    public function playerJail($player,$sender,$type = null){
+	public function playerJail($player,$sender,$type = null){
 		$x = round($player->getX());
 		$y = round($player->getY());
 		$z = round($player->getZ());
@@ -67,20 +67,25 @@ class jail{
 		$data = array("level" => $level->getName());
 		foreach($blocks as $val){
 			//[0] X座標,[1] Y座標,[2] Z座標,[3] BlockID,[4] メタ値
-			$bx = $x + $val[0];
-			$by = $y + $val[1];
-			$bz = $z + $val[2];
-			$id = $val[3];
+			$bx = $x + $val[0];//プレーヤーのいる場所からブロックを設置する座標を決める
+			$by = $y + $val[1];//〃Y
+			$bz = $z + $val[2];//〃Z
+			$id = $val[3];//ブロックのid
 			$bid = $level->getBlockIdAt($bx, $by ,$bz);
 			//$mata = $val[4];
 			$mata = (isset($val[4])) ? $val[4]:0;
 			//デバッグ用//
 			//$this->plugin->getLogger()->info("key." . $key . " x." . $x . " y." . $y . " z." . $z . " id." .$id . " mata." . $mata);
 			if($bid == Block::WALL_SIGN or $bid == Block::SIGN_POST){
-				$sign = $player->getLevel()->getTile(new Vector3($bx, $by, $bz));
-				if($sign instanceof Tile){
-					$text = $sign->getText();
-					$data[] = array($bx, $by, $bz, $level->getBlockIdAt($bx, $by ,$bz),$level->getBlockDataAt($bx, $by ,$bz),$text);
+				$tile = $player->getLevel()->getTile(new Vector3($bx, $by, $bz));
+				if($tile instanceof Tile){
+					if($tile instanceof Sign){
+						$text = $tile->getText();
+						$data[] = array($bx, $by, $bz, $level->getBlockIdAt($bx, $by ,$bz),$level->getBlockDataAt($bx, $by ,$bz),$text);
+					}elseif($tile instanceof Chest and false){
+						$slot = $tile->namedtag->Items['Slot'];
+						//$data[] = array($bx, $by, $bz, $level->getBlockIdAt($bx, $by ,$bz),$level->getBlockDataAt($bx, $by ,$bz),$slot);
+					}
 				}
 			}else{
 				$data[] = array($bx, $by, $bz, $level->getBlockIdAt($bx, $by ,$bz),$level->getBlockDataAt($bx, $by ,$bz));
@@ -99,7 +104,7 @@ class jail{
 	}
 	
 	//牢屋を元に戻す
-    public function unJail($player){
+	public function unJail($player){
 		if($player instanceof Player){//$playerがプレーヤーの場合は名前に変換
 			$player = $player->getName();
 		}
@@ -117,7 +122,7 @@ class jail{
 				$level = $this->getServer()->getDefaultLevel();
 			}
 			foreach($data as $key => $val){
-				if($key === "level"){continue;}//キーがLevelの場合はこの処理をスキップ
+				if($key === "level"){continue;}//キーの名前がlevelの場合はこの処理をスキップ
 				$block = Block::get($val[3], $val[4]);
 				$pos = new Vector3($val[0], $val[1], $val[2]);
 				$level->setBlock($pos, $block);
@@ -129,7 +134,7 @@ class jail{
 					}
 				}
 				//デバッグ用//
-				var_dump($val);
+				//var_dump($val);
 			}
 			unset($data);
 			return true;
@@ -137,14 +142,11 @@ class jail{
 			return false;
 		}
 	}
-    
-    //すべての牢屋を元に戻す
-    public function unJailAll(){
+
+	//すべての牢屋を元に戻す
+	public function unJailAll(){
 		$olddata = $this->old;
 		foreach($olddata as $key => $val){
-			/*$c = count($this->old[$key]);
-			if($c == 0){unset($this->old[$player->getName()]);return true;}//配列がない場合は終了
-			*/
 			$this->unjail($key);
 		}
 		return true;
@@ -162,20 +164,15 @@ class jail{
     	if(!isset($name)){return false;}
 		$blocks = $this->jailBlocks($player);
 		if(($blocks !== false) and !($this->jail->exists($name))){
-			$this->jailLoad($blocks, $name);
+			if(!$this->jail->exists($name)){
+				$this->jail->set($name,$blocks);
+				$this->jail->save();
+			}
+			$this->jailtype[$name] = $blocks;
 			return true;
 		}else{
 			return false;
 		}
-	}
-	
-	public function jailLoad($blocks, $name){//牢屋のブロックsデータを読み込めるように
-		if(!$this->jail->exists($name)){
-	        $this->jail->set($name,$blocks);
-			$this->jail->save();
-        }
-		$this->jailtype[$name] = $blocks;
-		return true;
 	}
 	
 	//指定された範囲のブロックをデータ化
@@ -202,6 +199,7 @@ class jail{
 						$cx = $px - $x;
 						$cy = $py - $y;
 						$cz = $pz - $z;
+						//data変数にブロックデータを入れる//変数の前に-つけて符号を反転
 						$data[] = array($c => -$cx . "," . -$cy . "," . -$cz . "," . $level->getBlockIdAt($x, $y ,$z) . "," . $level->getBlockDataAt($x, $y ,$z));
 						$c++;
 					}
@@ -212,86 +210,50 @@ class jail{
 			return false;
 		}
 	}
-
+	
 	//通常の牢屋
 	public function getJailStructure(){
 		$blocks  = array(
 			//一段目
 			array(0, -1, 0, Block::BEDROCK),
-			
 			array(0, -1, -1, Block::BEDROCK),
-			
 			array(0, -1, 1, Block::BEDROCK),
-			
 			array(-1, -1, 0, Block::BEDROCK),
-			
 			array(1, -1, 0, Block::BEDROCK),
-			
 			array(-1, -1, -1, Block::BEDROCK),
-			
 			array(1, -1, -1, Block::BEDROCK),
-			
 			array(-1, -1, 1, Block::BEDROCK),
-			
 			array(1, -1, 1, Block::BEDROCK),
-			
 			//二段目
 			array(0, 0, 0, Block::TORCH),
-			
 			array(0, 0,-1, Block::BEDROCK),
-			
 			array(0, 0,1, Block::BEDROCK),
-			
 			array(-1, 0, 0, Block::BEDROCK),
-			
 			array(1, 0, 0, Block::BEDROCK),
-			
 			array(-1, 0,-1, Block::BEDROCK),
-			
 			array(1, 0,-1, Block::BEDROCK),
-			
 			array(-1, 0,1, Block::BEDROCK),
-			
 			array(1, 0,1, Block::BEDROCK),
-			
 			//三段目
-            array(0, 1, 0, Block::AIR),
-			
+			array(0, 1, 0, Block::AIR),
 			array(0, 1, -1, Block::IRON_BAR),
-			
 			array(0, 1, 1, Block::IRON_BAR),
-			
 			array(-1, 1, 0, Block::IRON_BAR),
-			
 			array(1, 1, 0, Block::IRON_BAR),
-			
 			array(-1, 1, -1, Block::BEDROCK),
-			
 			array(1, 1, -1, Block::BEDROCK),
-			
 			array(-1, 1, 1, Block::BEDROCK),
-			
 			array(1, 1, 1, Block::BEDROCK),
-			
 			//四段目
 			array(0, 2, 0, Block::BEDROCK),
-			
 			array(0, 2, -1, Block::BEDROCK),
-			
 			array(0, 2, 1, Block::BEDROCK),
-			
 			array(-1, 2, 0, Block::BEDROCK),
-			
 			array(1, 2, 0, Block::BEDROCK),
-			
 			array(-1, 2, -1, Block::BEDROCK),
-			
 			array(1, 2, -1, Block::BEDROCK),
-			
 			array(-1, 2, 1, Block::BEDROCK),
-			
 			array(1, 2, 1, Block::BEDROCK),
-			
 		);
 		return $blocks;
 	}

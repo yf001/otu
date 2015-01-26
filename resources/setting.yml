@@ -1,0 +1,21 @@
+#乙設定ファイル
+# 設定方法
+# [ : ]以降を変更してください
+# test: aaa -> test: abc 有効/true 無効/false
+
+#otuを解除時に設定したコマンドを実行するか
+syakuhou: true
+
+#otu解除時に実行するコマンド ※コンソールとして実行されます
+# 変数 %p otuを解除された人の名前 %cp otuを解除した人の名前
+# %x %y %z コマンドを実行したプレーヤーの座標 %cx,%cy,%cz otuを解除された人の座標
+# /　を付けると複数実行できます。　例 tp %p %cp/say [乙]　%cpさんが釈放されました
+otuoffcmd: tp %p %cp
+
+#以下あらしへのメッセージの変更
+otu.cmdm.otu.arasi.now: ( ﾟω^ )ゝ 荒らし乙であります！
+otu.cmdm.otu.arasi.off: 釈放～
+otu.cmdm.runa.arasi.now: 動くと罪が重くなりますよ!
+otu.cmdm.runa.arasi.off: ルナを解除しました
+otu.cmdm.jail.arasi.now: ( ｀･ω ･´)ゞ 荒らし乙なのであります!
+otu.cmdm.jail.arasi.off: 釈放～
