@@ -29,7 +29,7 @@ JailPluginの作者様:omattyao<br/>
  <tr>
     <td>/otup</td>
     <td>牢屋の場所を設定します</td>
-    <td>設定は保存されます</td>
+    <td>設定は次回以降も有効です。</td>
   </tr>
   <tr>
     <td>/otulist</td>
