@@ -76,12 +76,12 @@ JailPluginの作者様:omattyao<br/>
    <tr>
     <td>/jailcraft pos1</td>
     <td>始点を指定します。</td>
-    <td>プレーヤーの位置で指定されます</td>
+    <td>実行後のブロックタッチで指定されます</td>
   </tr>
   <tr>
     <td>/jailcraft pos2</td>
     <td>終点を指定します。</td>
-    <td>プレーヤーの位置で指定されます</td>
+    <td>実行後のブロックタッチで指定されます</td>
   </tr>
    <tr>
     <td>/jailcraft pos3</td>
