@@ -114,8 +114,8 @@ otuoffcmd: tp %p %cp
 otuoffcmd: tp %p %cp/say [乙]　%cpさんが釈放されました
 ```
 ###ライセンス
-このプラグインはMITライセンス下で配布されています。
-MITライセンスに従い使用してください。
-ライセンスについては同梱のLICENSEファイルまたは以下のサイトからご覧いただけます。
-[MITライセンス](http://opensource.org/licenses/mit-license.php)
-[MITライセンス参考日本語訳](http://sourceforge.jp/projects/opensource/wiki/licenses%2FMIT_license)
+このプラグインはMITライセンス下で配布されています。<br/>
+MITライセンスに従い使用してください。<br/>
+ライセンスについては同梱のLICENSEファイルまたは以下のサイトからご覧いただけます。<br/>
+[MITライセンス](http://opensource.org/licenses/mit-license.php)<br/>
+[MITライセンス参考日本語訳](http://sourceforge.jp/projects/opensource/wiki/licenses%2FMIT_license)<br/>
