@@ -176,10 +176,6 @@ class otu extends PluginBase implements Listener {
 					}else{
 						$sender->sendMessage("[乙] (｀･ω･´)ゞ 牢屋を撤去しました");//コマンド実行者にメッセージ
 					}
-					$player = $this->getServer()->getPlayer($args[0]);//プレーヤー名取得
-					if($player instanceof Player){
-						$player->sendMessage("[乙] " . $this->setting->get("otu.cmdm.jail.arasi.off"));//ターゲットへのめっせーじ
-					}
 				}else{
 					$sender->sendMessage("[乙] 戻すためのデータがありません");//コマンド実行者にメッセージ送信
 				}
@@ -190,17 +186,18 @@ class otu extends PluginBase implements Listener {
 				switch ($args[0]) {
 				case "pos1":
 				case "p1":
-					jail::getInstance()->pos[$sender->getName()][1] = array("x" => $sender->getX(), "y" => $sender->getY(), "z" => $sender->getZ());
-					$sender->sendMessage("[乙] 始点を設定しました");//コマンド実行者にメッセージ送信
+					$this->jpt[$sender->getName()] = 1;
+					$sender->sendMessage("[乙] ブロックタッチ!");//コマンド実行者にメッセージ送信
 					break;
 				case "pos2":
 				case "p2":
-					Jail::getInstance()->pos[$sender->getName()][2] = array("x" => $sender->getX(), "y" => $sender->getY(), "z" => $sender->getZ());
-					$sender->sendMessage("[乙] 終点を設定しました");//コマンド実行者にメッセージ送信
+					$this->jpt[$sender->getName()] = 2;
+					$sender->sendMessage("[乙] ブロックタッチ!");//コマンド実行者にメッセージ送信
 					break;
 				case "pos3":
 				case "p3":
 					Jail::getInstance()->pos[$sender->getName()][3] = array("x" => $sender->getX(), "y" => $sender->getY(), "z" => $sender->getZ());
+					//todo ブロックタッチ
 					$sender->sendMessage("[乙] プレーヤーの場所を設定しました");//コマンド実行者にメッセージ送信
 					break;
 				case "craft":
@@ -269,11 +266,26 @@ class otu extends PluginBase implements Listener {
 		}
 	}
 	
-	//ブロックタッチ制限
+	//ブロックタッチ制限//とjailの範囲指定
 	public function onPlayerInteract(PlayerInteractEvent $event){
 		$player = $event->getPlayer();
 		if($this->otu->exists($player->getName())){
 			$event->setCancelled();
+		}
+		if(isset($this->jpt[$player->getName()])){
+			$block = $event->getBlock();
+			switch ($this->jpt[$player->getName()]) {
+				case 1:
+					jail::getInstance()->pos[$player->getName()][1] = array("x" => $block->getX(), "y" => $block->getY(), "z" => $block->getZ());
+					unset($this->jpt[$player->getName()]);
+					$player->sendMessage("[乙] 始点を指定しました");
+					break;
+				case 2:
+					Jail::getInstance()->pos[$player->getName()][2] = array("x" => $block->getX(), "y" => $block->getY(), "z" => $block->getZ());
+					unset($this->jpt[$player->getName()]);
+					$player->sendMessage("[乙] 終点を指定しました");
+					break;
+			}
 		}
     }
 	

@@ -5,6 +5,7 @@ namespace otu;
 use pocketmine\Server;
 use pocketmine\Player;
 use pocketmine\block\Block;
+use pocketmine\item\Item;
 use pocketmine\level\Level;
 use pocketmine\level\Position;
 use pocketmine\math\Vector3;
@@ -12,6 +13,7 @@ use pocketmine\utils\Config;
 use pocketmine\utils\TextFormat;
 use pocketmine\tile\Sign;
 use pocketmine\tile\Tile;
+use pocketmine\tile\Chest;
 
 class jail{
 
@@ -65,7 +67,7 @@ class jail{
 		$blocks = $this->getJailType($type);
 		$level = $player->getLevel();
 		$data = array("level" => $level->getName());
-		foreach($blocks as $val){
+		foreach($blocks as $key => $val){
 			//[0] X座標,[1] Y座標,[2] Z座標,[3] BlockID,[4] メタ値
 			$bx = $x + $val[0];//プレーヤーのいる場所からブロックを設置する座標を決める
 			$by = $y + $val[1];//〃Y
@@ -75,22 +77,21 @@ class jail{
 			//$mata = $val[4];
 			$mata = (isset($val[4])) ? $val[4]:0;
 			//デバッグ用//
-			//$this->plugin->getLogger()->info("key." . $key . " x." . $x . " y." . $y . " z." . $z . " id." .$id . " mata." . $mata);
-			if($bid == Block::WALL_SIGN or $bid == Block::SIGN_POST){
+			$this->plugin->getLogger()->info("key." . $key . " x." . $x . " y." . $y . " z." . $z . " id." .$id . " mata." . $mata);
+			if($bid == Block::WALL_SIGN or $bid == Block::SIGN_POST or $bid == Block::CHEST){
 				$tile = $player->getLevel()->getTile(new Vector3($bx, $by, $bz));
 				if($tile instanceof Tile){
 					if($tile instanceof Sign){
 						$text = $tile->getText();
 						$data[] = array($bx, $by, $bz, $level->getBlockIdAt($bx, $by ,$bz),$level->getBlockDataAt($bx, $by ,$bz),$text);
-					}elseif($tile instanceof Chest and false){
-						$slot = $tile->namedtag->Items['Slot'];
-						//$data[] = array($bx, $by, $bz, $level->getBlockIdAt($bx, $by ,$bz),$level->getBlockDataAt($bx, $by ,$bz),$slot);
+					}elseif($tile instanceof Chest){
+						$slot = $tile->getInventory()->getContents();
+						$data[] = array($bx, $by, $bz, $level->getBlockIdAt($bx, $by ,$bz),$level->getBlockDataAt($bx, $by ,$bz),$slot);
 					}
 				}
 			}else{
 				$data[] = array($bx, $by, $bz, $level->getBlockIdAt($bx, $by ,$bz),$level->getBlockDataAt($bx, $by ,$bz));
 			}
-			$block = Block::get($id,$mata);
 			$block = Block::get($id,$mata);
 			$pos = new Vector3($bx, $by, $bz);
 			$level->setBlock($pos, $block);
@@ -98,7 +99,8 @@ class jail{
 		$pos = new Position($x + 0.5, $y, $z + 0.5,$level);
 		$player->teleport($pos);
 		//デバッグ用//
-		//var_dump($blocks);
+		var_dump($blocks);
+		var_dump($data);
 		$this->old[$sender->getName()][] = $data;
 		return true;
 	}
@@ -126,12 +128,21 @@ class jail{
 				$block = Block::get($val[3], $val[4]);
 				$pos = new Vector3($val[0], $val[1], $val[2]);
 				$level->setBlock($pos, $block);
-				if(isset($val[5]) and $block->getId() == Block::SIGN_POST or $block->getId() == Block::WALL_SIGN){
-					$sign = $level->getTile(new Vector3($val[0], $val[1], $val[2]));
-					if($sign instanceof Tile){
-						$sign->setText($val[5][0], $val[5][1], $val[5][2], $val[5][3]);
-						$sign->saveNBT();
+				if(isset($val[5])){
+					if($block->getId() == Block::SIGN_POST or $block->getId() == Block::WALL_SIGN){
+						$sign = $level->getTile(new Vector3($val[0], $val[1], $val[2]));
+						if($sign instanceof Tile){
+							$sign->setText($val[5][0], $val[5][1], $val[5][2], $val[5][3]);
+							$sign->saveNBT();
+						}
+					}elseif($block->getId() == Block::CHEST){
+						$chest = $level->getTile(new Vector3($val[0], $val[1], $val[2]));
+						if($chest instanceof Tile){
+							$chest->getInventory()->setContents($val[5]);
+							$chest->saveNBT();
+						}
 					}
+					
 				}
 				//デバッグ用//
 				//var_dump($val);
