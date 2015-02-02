@@ -58,12 +58,11 @@ class jail{
 		return self::$obj;
 	}
 	
-	//プレーヤーを牢屋に入れる//$player プレーヤーのオブジェクト
+	//プレーヤーを牢屋に入れる//$player プレーヤーのオブジェクト//コマンド
 	public function playerJail($player,$sender,$type = null){
 		$x = round($player->getX());
 		$y = round($player->getY());
 		$z = round($player->getZ());
-		//$blocks = $this->getJailStructure();
 		$blocks = $this->getJailType($type);
 		$level = $player->getLevel();
 		$data = array("level" => $level->getName());
@@ -77,7 +76,7 @@ class jail{
 			//$mata = $val[4];
 			$mata = (isset($val[4])) ? $val[4]:0;
 			//デバッグ用//
-			$this->plugin->getLogger()->info("key." . $key . " x." . $x . " y." . $y . " z." . $z . " id." .$id . " mata." . $mata);
+			//$this->plugin->getLogger()->info("key." . $key . " x." . $x . " y." . $y . " z." . $z . " id." .$id . " mata." . $mata);
 			if($bid == Block::WALL_SIGN or $bid == Block::SIGN_POST or $bid == Block::CHEST){
 				$tile = $player->getLevel()->getTile(new Vector3($bx, $by, $bz));
 				if($tile instanceof Tile){
@@ -99,13 +98,13 @@ class jail{
 		$pos = new Position($x + 0.5, $y, $z + 0.5,$level);
 		$player->teleport($pos);
 		//デバッグ用//
-		var_dump($blocks);
-		var_dump($data);
+		//var_dump($blocks);
+		//var_dump($data);
 		$this->old[$sender->getName()][] = $data;
 		return true;
 	}
 	
-	//牢屋を元に戻す
+	//牢屋を元に戻す//コマンド
 	public function unJail($player){
 		if($player instanceof Player){//$playerがプレーヤーの場合は名前に変換
 			$player = $player->getName();
@@ -131,13 +130,13 @@ class jail{
 				if(isset($val[5])){
 					if($block->getId() == Block::SIGN_POST or $block->getId() == Block::WALL_SIGN){
 						$sign = $level->getTile(new Vector3($val[0], $val[1], $val[2]));
-						if($sign instanceof Tile){
+						if($sign instanceof Sign){
 							$sign->setText($val[5][0], $val[5][1], $val[5][2], $val[5][3]);
 							$sign->saveNBT();
 						}
 					}elseif($block->getId() == Block::CHEST){
 						$chest = $level->getTile(new Vector3($val[0], $val[1], $val[2]));
-						if($chest instanceof Tile){
+						if($chest instanceof Chest){
 							$chest->getInventory()->setContents($val[5]);
 							$chest->saveNBT();
 						}
@@ -154,7 +153,7 @@ class jail{
 		}
 	}
 
-	//すべての牢屋を元に戻す
+	//すべての牢屋を元に戻す//コマンド
 	public function unJailAll(){
 		$olddata = $this->old;
 		foreach($olddata as $key => $val){
@@ -167,7 +166,7 @@ class jail{
 		if(isset($this->jailtype[$type])){
 			return $this->jailtype[$type];
 		}else{
-			return $this->getJailStructure();
+			return $this->getJailStructure($type);
 		}
 	}
 	
@@ -175,11 +174,16 @@ class jail{
     	if(!isset($name)){return false;}
 		$blocks = $this->jailBlocks($player);
 		if(($blocks !== false) and !($this->jail->exists($name))){
-			if(!$this->jail->exists($name)){
-				$this->jail->set($name,$blocks);
-				$this->jail->save();
+			$this->jail->set($name,$blocks);//牢屋のブロックsデータをセット
+			$this->jail->save();//データを保存
+			//変換して使えるように
+			foreach($blocks as $val){
+				foreach($val as $val2){
+					$blocksc[] = explode(",",$val2);// , で区切って配列にする
+				}
 			}
-			$this->jailtype[$name] = $blocks;
+			//ブロックデータを , で区切って配列化
+			$this->jailtype[$name] = $blocksc;
 			return true;
 		}else{
 			return false;
@@ -223,49 +227,60 @@ class jail{
 	}
 	
 	//通常の牢屋
-	public function getJailStructure(){
-		$blocks  = array(
-			//一段目
-			array(0, -1, 0, Block::BEDROCK),
-			array(0, -1, -1, Block::BEDROCK),
-			array(0, -1, 1, Block::BEDROCK),
-			array(-1, -1, 0, Block::BEDROCK),
-			array(1, -1, 0, Block::BEDROCK),
-			array(-1, -1, -1, Block::BEDROCK),
-			array(1, -1, -1, Block::BEDROCK),
-			array(-1, -1, 1, Block::BEDROCK),
-			array(1, -1, 1, Block::BEDROCK),
-			//二段目
-			array(0, 0, 0, Block::TORCH),
-			array(0, 0,-1, Block::BEDROCK),
-			array(0, 0,1, Block::BEDROCK),
-			array(-1, 0, 0, Block::BEDROCK),
-			array(1, 0, 0, Block::BEDROCK),
-			array(-1, 0,-1, Block::BEDROCK),
-			array(1, 0,-1, Block::BEDROCK),
-			array(-1, 0,1, Block::BEDROCK),
-			array(1, 0,1, Block::BEDROCK),
-			//三段目
-			array(0, 1, 0, Block::AIR),
-			array(0, 1, -1, Block::IRON_BAR),
-			array(0, 1, 1, Block::IRON_BAR),
-			array(-1, 1, 0, Block::IRON_BAR),
-			array(1, 1, 0, Block::IRON_BAR),
-			array(-1, 1, -1, Block::BEDROCK),
-			array(1, 1, -1, Block::BEDROCK),
-			array(-1, 1, 1, Block::BEDROCK),
-			array(1, 1, 1, Block::BEDROCK),
-			//四段目
-			array(0, 2, 0, Block::BEDROCK),
-			array(0, 2, -1, Block::BEDROCK),
-			array(0, 2, 1, Block::BEDROCK),
-			array(-1, 2, 0, Block::BEDROCK),
-			array(1, 2, 0, Block::BEDROCK),
-			array(-1, 2, -1, Block::BEDROCK),
-			array(1, 2, -1, Block::BEDROCK),
-			array(-1, 2, 1, Block::BEDROCK),
-			array(1, 2, 1, Block::BEDROCK),
-		);
+	public function getJailStructure($type){
+		switch ($type) {
+			case "@2":
+				$blocks = array(array(0, -1, 0, Block::BEDROCK));
+				break;
+			case "@3":
+				$blocks = array(array(0, -1, 0, Block::BEDROCK));
+				break;
+			case "@1":
+			default:
+			$blocks = array(
+				//一段目
+				array(0, -1, 0, Block::BEDROCK),
+				array(0, -1, -1, Block::BEDROCK),
+				array(0, -1, 1, Block::BEDROCK),
+				array(-1, -1, 0, Block::BEDROCK),
+				array(1, -1, 0, Block::BEDROCK),
+				array(-1, -1, -1, Block::BEDROCK),
+				array(1, -1, -1, Block::BEDROCK),
+				array(-1, -1, 1, Block::BEDROCK),
+				array(1, -1, 1, Block::BEDROCK),
+				//二段目
+				array(0, 0, 0, Block::TORCH),
+				array(0, 0,-1, Block::BEDROCK),
+				array(0, 0,1, Block::BEDROCK),
+				array(-1, 0, 0, Block::BEDROCK),
+				array(1, 0, 0, Block::BEDROCK),
+				array(-1, 0,-1, Block::BEDROCK),
+				array(1, 0,-1, Block::BEDROCK),
+				array(-1, 0,1, Block::BEDROCK),
+				array(1, 0,1, Block::BEDROCK),
+				//三段目
+				array(0, 1, 0, Block::AIR),
+				array(0, 1, -1, Block::IRON_BAR),
+				array(0, 1, 1, Block::IRON_BAR),
+				array(-1, 1, 0, Block::IRON_BAR),
+				array(1, 1, 0, Block::IRON_BAR),
+				array(-1, 1, -1, Block::BEDROCK),
+				array(1, 1, -1, Block::BEDROCK),
+				array(-1, 1, 1, Block::BEDROCK),
+				array(1, 1, 1, Block::BEDROCK),
+				//四段目
+				array(0, 2, 0, Block::BEDROCK),
+				array(0, 2, -1, Block::BEDROCK),
+				array(0, 2, 1, Block::BEDROCK),
+				array(-1, 2, 0, Block::BEDROCK),
+				array(1, 2, 0, Block::BEDROCK),
+				array(-1, 2, -1, Block::BEDROCK),
+				array(1, 2, -1, Block::BEDROCK),
+				array(-1, 2, 1, Block::BEDROCK),
+				array(1, 2, 1, Block::BEDROCK),
+			);
+		}
+		
 		return $blocks;
 	}
 }

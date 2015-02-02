@@ -203,10 +203,12 @@ class otu extends PluginBase implements Listener {
 				case "craft":
 				case "c":
 					if(!isset($args[1])){return false;}//例外回避
+					//めんどくさいのでほぼ一回ですませる
 					if(isset(Jail::getInstance()->pos[$sender->getName()][1]) and //pos1が指定されてるか
 						isset(Jail::getInstance()->pos[$sender->getName()][2]) and //pos2が指定されてるか
-							isset(Jail::getInstance()->pos[$sender->getName()][3]) and
-								isset($args[1])){//pos3が指定されてるか
+							isset(Jail::getInstance()->pos[$sender->getName()][3]) and //pos3が指定されてるか
+								isset($args[1])){//名前が指定されているか
+						if($args[1][0] == "@"){$sender->sendMessage("[乙] 名前の最初に@を付けることはできません");return true;}//名前の最初に@がついてるか。ついていればOUT!
 						if(Jail::getInstance()->craftJail($sender,$args[1])){
 							$sender->sendMessage("[乙] 作成完了!");//コマンド実行者にメッセージ送信
 						}else{
@@ -246,12 +248,11 @@ class otu extends PluginBase implements Listener {
 		$player = $event->getPlayer();
 		if($this->otu->exists($player->getName())){
 			$m = $event->getMessage();
-			$s = strpos($m, '/');
-			if($s == 0 and $s !== false){
-				$s2 = strpos($m, '/register');//ログインコマンドの場合はコマンドの使用を許可する
-				$s3 = strpos($m, '/login');
-				if($s2 !== false and $s3 !== false){
-					$event->setCancelled(true);
+			if($m[0] == "/"){
+				$sr = strpos($m, '/register');//ログインコマンドの場合はコマンドの使用を許可する
+				$sl = strpos($m, '/login');
+				if($sr === false and $sl === false){
+					$event->setCancelled();
 				}
 			}
 		}
