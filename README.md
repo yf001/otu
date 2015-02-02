@@ -3,6 +3,7 @@ otu(乙)
 
 荒らしを牢屋に入れたり、動けなくしたり荒らしの行動を制限することができます。<br/>
 またJailPluginプラグインも移植しています。(許可なし...)<br/>
+※注意.ソース版ではデバッグメッセージが表示される場合があります。ご了承ください。<br/>
 <br/>
 otuとrunaのアイデア:akaituki8126<br/>
 JailPluginの作者様:omattyao<br/>
@@ -75,12 +76,12 @@ JailPluginの作者様:omattyao<br/>
    <tr>
     <td>/jailcraft pos1</td>
     <td>始点を指定します。</td>
-    <td>プレーヤーの位置で指定されます</td>
+    <td>実行後のブロックタッチで指定されます</td>
   </tr>
   <tr>
     <td>/jailcraft pos2</td>
     <td>終点を指定します。</td>
-    <td>プレーヤーの位置で指定されます</td>
+    <td>実行後のブロックタッチで指定されます</td>
   </tr>
    <tr>
     <td>/jailcraft pos3</td>
@@ -112,3 +113,9 @@ otuoffcmd: tp %p %cp
 # 例
 otuoffcmd: tp %p %cp/say [乙]　%cpさんが釈放されました
 ```
+###ライセンス
+このプラグインはMITライセンス下で配布されています。<br/>
+MITライセンスに従い使用してください。<br/>
+ライセンスについては同梱のLICENSEファイルまたは以下のサイトからご覧いただけます。<br/>
+[MITライセンス](http://opensource.org/licenses/mit-license.php)<br/>
+[MITライセンス参考日本語訳](http://sourceforge.jp/projects/opensource/wiki/licenses%2FMIT_license)<br/>
