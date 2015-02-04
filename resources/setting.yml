@@ -10,7 +10,11 @@ syakuhou: true
 # 変数 %p otuを解除された人の名前 %cp otuを解除した人の名前
 # %x %y %z コマンドを実行したプレーヤーの座標 %cx,%cy,%cz otuを解除された人の座標
 # / を付けると複数実行できます。　例 tp %p %cp/say [乙]　%cpさんが釈放されました
-otuoffcmd: tp %p %cp
+otuoffcmd: tp %cp　%p
+
+#/otupで設定されたotuで使用するワールドが読み込まれてない場合otuがワールドを読み込むか
+# ※ワールドが存在しない場合は読み込みません
+levelload: false
 
 #以下あらしへのメッセージの変更
 otu.cmdm.otu.arasi.now: ( ﾟω^ )ゝ 荒らし乙であります！

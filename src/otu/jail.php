@@ -94,12 +94,15 @@ class jail{
 			$block = Block::get($id,$mata);
 			$pos = new Vector3($bx, $by, $bz);
 			$level->setBlock($pos, $block);
+			//unset($blocks[$key]);
+			//echo memory_get_usage(true) . "\n";
 		}
 		$pos = new Position($x + 0.5, $y, $z + 0.5,$level);
 		$player->teleport($pos);
 		//デバッグ用//
 		//var_dump($blocks);
 		//var_dump($data);
+		//echo "end:" . memory_get_usage(true) . "\n";
 		$this->old[$sender->getName()][] = $data;
 		return true;
 	}

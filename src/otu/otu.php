@@ -38,9 +38,24 @@ class otu extends PluginBase implements Listener {
 		$xyz = explode(',', $this->config->get("xyz"));//x,y,z,worldを配列に変換
 		$this->level = Server::getInstance()->getLevelByName($xyz[3]);
 		if(!($this->level instanceof Level)){//レベルオブジェクトかの判定//違う場合は以下の処理
-			$this->getLogger()->warning("ワールド{$xyz[3]}が読み込まれていません!");
-			$this->getLogger()->warning("デフォルトで使用されるワールドを使用します");
-			$this->level = Server::getInstance()->getDefaultLevel();
+			if($this->setting->get("levelload") == true){
+				if(is_dir(Server::getInstance()->getDataPath() . "worlds/" . $xyz[3] . "/")){
+					$this->getLogger()->notice("ワールド" . $xyz[3] . "を読み込みます");
+					Server::getInstance()->loadLevel($xyz[3]);
+					if(Server::getInstance()->getLevelByName($xyz[3]) instanceof Level){//レベルオブジェクトかの判定//違う場合は以下の処理
+						$this->level = Server::getInstance()->getLevelByName($xyz[3]);
+						$this->getLogger()->notice("ワールド" . $xyz[3] . "を使用します");
+					}
+				}else{
+					$this->getLogger()->warning("ワールド{$xyz[3]}が存在しません!");
+					$this->getLogger()->warning("デフォルトで使用されるワールドを使用します");
+					$this->level = Server::getInstance()->getDefaultLevel();
+				}
+			}else{
+				$this->getLogger()->warning("ワールド{$xyz[3]}が読み込まれていません!");
+				$this->getLogger()->warning("デフォルトで使用されるワールドを使用します");
+				$this->level = Server::getInstance()->getDefaultLevel();
+			}
 		}
 	}
 	//サーバー停止時の処理//プラグインが無効になると実行されるメソッド
@@ -91,13 +106,14 @@ class otu extends PluginBase implements Listener {
 			break;
 			case "otup"://otupコマンド実行時の処理
 				if(!($sender instanceof Player)){$sender->sendMessage("[乙] ゲーム内で実行してください");}
-					$x = round($sender->getX(), 1);//コマンド実行者のX座標取得&四捨五入
-					$y = round($sender->getY(), 1);//コマンド実行者のY座標取得&四捨五入
-					$z = round($sender->getZ(), 1);//コマンド実行者のZ座標取得&四捨五入
-					$this->config->set("xyz",$x . "," . $y ."," . $z . "," . $sender->getLevel()->getName());//設定ファイルに座標を設定
-					$this->config->save();//セーブ
-					//コマンド実行者へ設定完了メッセージを送信
-					$sender->sendMessage("[乙] 牢屋の座標を x:" . $x . " y:" . $y . " z:" . $z . "に設定しました");
+				$x = round($sender->getX(), 1);//コマンド実行者のX座標取得&四捨五入
+				$y = round($sender->getY(), 1);//コマンド実行者のY座標取得&四捨五入
+				$z = round($sender->getZ(), 1);//コマンド実行者のZ座標取得&四捨五入
+				$this->config->set("xyz",$x . "," . $y ."," . $z . "," . $sender->getLevel()->getName());//設定ファイルに座標を設定
+				$this->config->save();//セーブ
+				$this->level = $sender->getLevel();
+				//コマンド実行者へ設定完了メッセージを送信
+				$sender->sendMessage("[乙] 牢屋の座標を x:" . $x . " y:" . $y . " z:" . $z . "に設定しました");
 				return true;
 			break;
 			case "runa"://runaコマンド実行時の処理
@@ -257,6 +273,7 @@ class otu extends PluginBase implements Listener {
 			}
 		}
 	}
+	
 	//移動制限
 	public function onPlayerMove(PlayerMoveEvent $event){
 		$player = $event->getPlayer();
@@ -310,9 +327,11 @@ class otu extends PluginBase implements Listener {
 	public function CPR($cmd, $p, $o){
 		//player
 		$cmd = str_replace("%p", $p->getName(), $cmd);
-		$cmd = str_replace("%x", $p->getX(), $cmd);
-		$cmd = str_replace("%y", $p->getY(), $cmd);
-		$cmd = str_replace("%z", $p->getZ(), $cmd);
+		if($p instanceof Player){
+			$cmd = str_replace("%x", $p->getX(), $cmd);
+			$cmd = str_replace("%y", $p->getY(), $cmd);
+			$cmd = str_replace("%z", $p->getZ(), $cmd);
+		}
 		//otu
 		$cmd = str_replace("%cp", $o->getName(), $cmd);
 		$cmd = str_replace("%cx", $o->getX(), $cmd);
